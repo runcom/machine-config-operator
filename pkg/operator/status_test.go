@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	configv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -174,5 +175,97 @@ func TestIsControllerConfigCompleted(t *testing.T) {
 				t.Fatalf("expected %v got %v", test.err, err)
 			}
 		})
+	}
+}
+
+func TestCalculateFailingStatus(t *testing.T) {
+	optr := &Operator{}
+	optr.vStore = newVersionStore()
+	optr.vStore.Set("operator", "test-string")
+
+	for i, c := range []struct {
+		progressing     bool
+		failing         bool
+		expectedStatus  configv1.ConditionStatus
+		expectedMessage string
+	}{
+		{
+			progressing:     true,
+			failing:         true,
+			expectedStatus:  configv1.ConditionTrue,
+			expectedMessage: "Cluster has deployed test-string",
+		},
+		{
+			progressing:     false,
+			failing:         true,
+			expectedStatus:  configv1.ConditionFalse,
+			expectedMessage: "Cluster not available for test-string",
+		},
+		{
+			progressing:     false,
+			failing:         false,
+			expectedStatus:  configv1.ConditionTrue,
+			expectedMessage: "Cluster has deployed test-string",
+		},
+		{
+			progressing:     true,
+			failing:         false,
+			expectedStatus:  configv1.ConditionTrue,
+			expectedMessage: "Cluster has deployed test-string",
+		},
+	} {
+		status, message, reason := optr.calculateFailingStatus()
+		if status != c.expectedStatus {
+			t.Errorf("test case %d: got status %v, wanted %v", i, status, c.expectedStatus)
+		}
+		if message != c.expectedMessage {
+			t.Errorf("test case %d: got message %q, wanted %q", i, message, c.expectedMessage)
+		}
+	}
+}
+
+func TestCalculateAvailableStatus(t *testing.T) {
+	optr := &Operator{}
+	optr.vStore = newVersionStore()
+	optr.vStore.Set("operator", "test-string")
+
+	for i, c := range []struct {
+		progressing     bool
+		failing         bool
+		expectedStatus  configv1.ConditionStatus
+		expectedMessage string
+	}{
+		{
+			progressing:     true,
+			failing:         true,
+			expectedStatus:  configv1.ConditionTrue,
+			expectedMessage: "Cluster has deployed test-string",
+		},
+		{
+			progressing:     false,
+			failing:         true,
+			expectedStatus:  configv1.ConditionFalse,
+			expectedMessage: "Cluster not available for test-string",
+		},
+		{
+			progressing:     false,
+			failing:         false,
+			expectedStatus:  configv1.ConditionTrue,
+			expectedMessage: "Cluster has deployed test-string",
+		},
+		{
+			progressing:     true,
+			failing:         false,
+			expectedStatus:  configv1.ConditionTrue,
+			expectedMessage: "Cluster has deployed test-string",
+		},
+	} {
+		status, message := optr.calculateAvailableStatus(c.progressing, c.failing)
+		if status != c.expectedStatus {
+			t.Errorf("test case %d: got status %v, wanted %v", i, status, c.expectedStatus)
+		}
+		if message != c.expectedMessage {
+			t.Errorf("test case %d: got message %q, wanted %q", i, message, c.expectedMessage)
+		}
 	}
 }
