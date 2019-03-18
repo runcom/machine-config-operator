@@ -76,6 +76,7 @@ func (cs *clusterServer) GetConfig(cr poolRequest) (*ignv2_2types.Config, error)
 			return nil, err
 		}
 	}
+	// TODO(runcom): switch based on header to use v2/v3 as appropriate
 	return &mc.Spec.Config, nil
 }
 
