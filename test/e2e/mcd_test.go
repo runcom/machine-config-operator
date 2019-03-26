@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	ignv2_2types "github.com/coreos/ignition/config/v2_2/types"
+	igntypes "github.com/coreos/ignition/config/v3_0/types"
 	mcv1 "github.com/openshift/machine-config-operator/pkg/apis/machineconfiguration.openshift.io/v1"
 	"github.com/openshift/machine-config-operator/pkg/daemon/constants"
 	"github.com/openshift/machine-config-operator/test/e2e/framework"
@@ -51,15 +51,15 @@ func mcLabelForWorkers() map[string]string {
 	return mcLabels
 }
 
-func createIgnFile(path, content, fs string, mode int) ignv2_2types.File {
-	return ignv2_2types.File{
-		FileEmbedded1: ignv2_2types.FileEmbedded1{
-			Contents: ignv2_2types.FileContents{
+func createIgnFile(path, content, fs string, mode int) igntypes.File {
+	return igntypes.File{
+		FileEmbedded1: igntypes.FileEmbedded1{
+			Contents: igntypes.FileContents{
 				Source: content,
 			},
 			Mode: &mode,
 		},
-		Node: ignv2_2types.Node{
+		Node: igntypes.Node{
 			Filesystem: fs,
 			Path:       path,
 		},
@@ -76,12 +76,12 @@ func createMCToAddFile(name, filename, data, fs string) *mcv1.MachineConfig {
 		Labels: mcLabelForWorkers(),
 	}
 	mcadd.Spec = mcv1.MachineConfigSpec{
-		Config: ignv2_2types.Config{
-			Ignition: ignv2_2types.Ignition{
+		Config: igntypes.Config{
+			Ignition: igntypes.Ignition{
 				Version: "2.2.0",
 			},
-			Storage: ignv2_2types.Storage{
-				Files: []ignv2_2types.File{
+			Storage: igntypes.Storage{
+				Files: []igntypes.File{
 					createIgnFile(filename, "data:,"+data, fs, 420),
 				},
 			},
@@ -156,20 +156,20 @@ func TestUpdateSSH(t *testing.T) {
 		Labels: mcLabelForWorkers(),
 	}
 	// create a new MC that adds a valid user & ssh keys
-	tempUser := ignv2_2types.PasswdUser{
+	tempUser := igntypes.PasswdUser{
 		Name: "core",
-		SSHAuthorizedKeys: []ignv2_2types.SSHAuthorizedKey{
+		SSHAuthorizedKeys: []igntypes.SSHAuthorizedKey{
 			"1234_test",
 			"abc_test",
 		},
 	}
 	mcadd.Spec = mcv1.MachineConfigSpec{
-		Config: ignv2_2types.Config{
-			Ignition: ignv2_2types.Ignition{
+		Config: igntypes.Config{
+			Ignition: igntypes.Ignition{
 				Version: "2.2.0",
 			},
-			Passwd: ignv2_2types.Passwd{
-				Users: []ignv2_2types.PasswdUser{tempUser},
+			Passwd: igntypes.Passwd{
+				Users: []igntypes.PasswdUser{tempUser},
 			},
 		},
 	}

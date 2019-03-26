@@ -12,9 +12,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig"
-	ctconfig "github.com/coreos/container-linux-config-transpiler/config"
-	cttypes "github.com/coreos/container-linux-config-transpiler/config/types"
-	ignv2_2types "github.com/coreos/ignition/config/v2_2/types"
+	igntypes "github.com/coreos/ignition/config/v3_0/types"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	mcfgv1 "github.com/openshift/machine-config-operator/pkg/apis/machineconfiguration.openshift.io/v1"
@@ -95,13 +93,7 @@ func GenerateMachineConfigsForRole(config *RenderConfig, role string, path strin
 		return nil, fmt.Errorf("failed to read dir %q: %v", path, err)
 	}
 
-	sshMachineConfigForRole, err := generateSSHConfig(config.SSHKey, role)
-	if err != nil {
-		return nil, err
-	}
-
 	cfgs := []*mcfgv1.MachineConfig{}
-	cfgs = append(cfgs, sshMachineConfigForRole)
 
 	for _, info := range infos {
 		if !info.IsDir() {
@@ -118,23 +110,6 @@ func GenerateMachineConfigsForRole(config *RenderConfig, role string, path strin
 	}
 
 	return cfgs, nil
-}
-
-// for each role a machine config is created containing the sshauthorized keys to allow for ssh access
-// ex: role = worker -> machine config "00-worker-ssh" created containing user core and ssh key
-func generateSSHConfig(sshKey string, role string) (*mcfgv1.MachineConfig, error) {
-	// Using cttypes.Config and then ctc.config.Covert allows us to create a properly structured
-	// validated Ignition Config (instead of creating one by hand) that is then added to a
-	// MachineConfig.
-	var tempctCfg cttypes.Config
-	tempUser := cttypes.User{Name: "core", SSHAuthorizedKeys: []string{sshKey}}
-	tempctCfg.Passwd.Users = append(tempctCfg.Passwd.Users, tempUser)
-	tempIgnConfig, rep := ctconfig.Convert(tempctCfg, "", nil)
-	if rep.IsFatal() {
-		return nil, fmt.Errorf("failed to convert config to Ignition config %s", rep)
-	}
-	sshConfigName := "00-" + role + "-ssh"
-	return MachineConfigFromIgnConfig(role, sshConfigName, &tempIgnConfig), nil
 }
 
 func platformFromControllerConfigSpec(ic *mcfgv1.ControllerConfigSpec) (string, error) {
@@ -265,7 +240,7 @@ const (
 )
 
 // MachineConfigFromIgnConfig creates a MachineConfig with the provided Ignition config
-func MachineConfigFromIgnConfig(role string, name string, ignCfg *ignv2_2types.Config) *mcfgv1.MachineConfig {
+func MachineConfigFromIgnConfig(role string, name string, ignCfg *igntypes.Config) *mcfgv1.MachineConfig {
 	labels := map[string]string{
 		machineConfigRoleLabelKey: role,
 	}
@@ -281,33 +256,28 @@ func MachineConfigFromIgnConfig(role string, name string, ignCfg *ignv2_2types.C
 	}
 }
 
-func transpileToIgn(files, units []string) (*ignv2_2types.Config, error) {
-	var ctCfg cttypes.Config
+func transpileToIgn(files, units []string) (*igntypes.Config, error) {
+	ignCfg := common.NewIgnConfig()
 
 	// Convert data to Ignition resources
 	for _, d := range files {
-		f := new(cttypes.File)
+		f := new(igntypes.File)
 		if err := yaml.Unmarshal([]byte(d), f); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal file into struct: %v", err)
 		}
 
 		// Add the file to the config
-		ctCfg.Storage.Files = append(ctCfg.Storage.Files, *f)
+		ignCfg.Storage.Files = append(ignCfg.Storage.Files, *f)
 	}
 
 	for _, d := range units {
-		u := new(cttypes.SystemdUnit)
+		u := new(igntypes.SystemdUnit)
 		if err := yaml.Unmarshal([]byte(d), u); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal systemd unit into struct: %v", err)
 		}
 
 		// Add the unit to the config
-		ctCfg.Systemd.Units = append(ctCfg.Systemd.Units, *u)
-	}
-
-	ignCfg, rep := ctconfig.Convert(ctCfg, "", nil)
-	if rep.IsFatal() {
-		return nil, fmt.Errorf("failed to convert config to Ignition config %s", rep)
+		ignCfg.Systemd.Units = append(IgnCfg.Systemd.Units, *u)
 	}
 
 	return &ignCfg, nil

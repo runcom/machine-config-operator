@@ -15,7 +15,7 @@ import (
 	"syscall"
 	"time"
 
-	ignv2_2types "github.com/coreos/ignition/config/v2_2/types"
+	igntypes "github.com/coreos/ignition/config/v3_0/types"
 	"github.com/coreos/ignition/config/validate"
 	"github.com/golang/glog"
 	"github.com/google/renameio"
@@ -360,8 +360,8 @@ func (dn *Daemon) reconcilable(oldConfig, newConfig *mcfgv1.MachineConfig) error
 // Otherwise, an error will be returned and the proposed config will not be reconcilable.
 // At this time we do not support non-"core" users or any changes to the "core" user
 // outside of SSHAuthorizedKeys.
-func verifyUserFields(pwdUser ignv2_2types.PasswdUser) error {
-	emptyUser := ignv2_2types.PasswdUser{}
+func verifyUserFields(pwdUser igntypes.PasswdUser) error {
+	emptyUser := igntypes.PasswdUser{}
 	tempUser := pwdUser
 	if tempUser.Name == coreUserName && len(tempUser.SSHAuthorizedKeys) >= 1 {
 		tempUser.Name = ""
@@ -483,7 +483,7 @@ func (dn *Daemon) deleteStaleData(oldConfig, newConfig *mcfgv1.MachineConfig) er
 }
 
 // enableUnit enables a systemd unit via symlink
-func (dn *Daemon) enableUnit(unit ignv2_2types.Unit) error {
+func (dn *Daemon) enableUnit(unit igntypes.Unit) error {
 	// The link location
 	wantsPath := filepath.Join(wantsPathSystemd, unit.Name)
 	// sanity check that we don't return an error when the link already exists
@@ -504,7 +504,7 @@ func (dn *Daemon) enableUnit(unit ignv2_2types.Unit) error {
 }
 
 // disableUnit disables a systemd unit via symlink removal
-func (dn *Daemon) disableUnit(unit ignv2_2types.Unit) error {
+func (dn *Daemon) disableUnit(unit igntypes.Unit) error {
 	// The link location
 	wantsPath := filepath.Join(wantsPathSystemd, unit.Name)
 	// sanity check so we don't return an error when the unit was already disabled
@@ -518,7 +518,7 @@ func (dn *Daemon) disableUnit(unit ignv2_2types.Unit) error {
 }
 
 // writeUnits writes the systemd units to disk
-func (dn *Daemon) writeUnits(units []ignv2_2types.Unit) error {
+func (dn *Daemon) writeUnits(units []igntypes.Unit) error {
 	for _, u := range units {
 		// write the dropin to disk
 		for i := range u.Dropins {
@@ -596,7 +596,7 @@ func (dn *Daemon) writeUnits(units []ignv2_2types.Unit) error {
 
 // writeFiles writes the given files to disk.
 // it doesn't fetch remote files and expects a flattened config file.
-func (dn *Daemon) writeFiles(files []ignv2_2types.File) error {
+func (dn *Daemon) writeFiles(files []igntypes.File) error {
 	for _, file := range files {
 		glog.Infof("Writing file %q", file.Path)
 
@@ -626,7 +626,7 @@ func (dn *Daemon) writeFiles(files []ignv2_2types.File) error {
 }
 
 // This is essentially ResolveNodeUidAndGid() from Ignition; XXX should dedupe
-func getFileOwnership(file ignv2_2types.File) (int, int, error) {
+func getFileOwnership(file igntypes.File) (int, int, error) {
 	uid, gid := 0, 0 // default to root
 	if file.User != nil {
 		if file.User.ID != nil {
@@ -655,7 +655,7 @@ func getFileOwnership(file ignv2_2types.File) (int, int, error) {
 	return uid, gid, nil
 }
 
-func (dn *Daemon) atomicallyWriteSSHKey(newUser ignv2_2types.PasswdUser, keys string) error {
+func (dn *Daemon) atomicallyWriteSSHKey(newUser igntypes.PasswdUser, keys string) error {
 	authKeyPath := filepath.Join(coreUserSSHPath, "authorized_keys.d", "ignition")
 
 	// Keys should only be written to "/home/core/.ssh"
@@ -672,7 +672,7 @@ func (dn *Daemon) atomicallyWriteSSHKey(newUser ignv2_2types.PasswdUser, keys st
 }
 
 // Update a given PasswdUser's SSHKey
-func (dn *Daemon) updateSSHKeys(newUsers []ignv2_2types.PasswdUser) error {
+func (dn *Daemon) updateSSHKeys(newUsers []igntypes.PasswdUser) error {
 	if len(newUsers) == 0 {
 		return nil
 	}
