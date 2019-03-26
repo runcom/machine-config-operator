@@ -656,7 +656,7 @@ func getFileOwnership(file ignv2_2types.File) (int, int, error) {
 }
 
 func (dn *Daemon) atomicallyWriteSSHKey(newUser ignv2_2types.PasswdUser, keys string) error {
-	authKeyPath := filepath.Join(coreUserSSHPath, "authorized_keys")
+	authKeyPath := filepath.Join(coreUserSSHPath, "authorized_keys.d", "ignition")
 
 	// Keys should only be written to "/home/core/.ssh"
 	// Once Users are supported fully this should be writing to PasswdUser.HomeDir
