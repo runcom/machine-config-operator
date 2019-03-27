@@ -42,7 +42,7 @@ func deepCopyIgnConfig(in igntypes.Config) igntypes.Config {
 
 	out.Ignition.Version = in.Ignition.Version
 
-	return ign.Append(out, in)
+	return ign.Merge(out, in)
 }
 
 // DeepCopy copying the receiver, creating a new MachineConfigSpec.

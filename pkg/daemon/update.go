@@ -21,6 +21,7 @@ import (
 	"github.com/google/renameio"
 	drain "github.com/openshift/kubernetes-drain"
 	mcfgv1 "github.com/openshift/machine-config-operator/pkg/apis/machineconfiguration.openshift.io/v1"
+	ctrlcommon "github.com/openshift/machine-config-operator/pkg/controller/common"
 	"github.com/openshift/machine-config-operator/pkg/daemon/constants"
 	errors "github.com/pkg/errors"
 	"github.com/vincent-petithory/dataurl"
@@ -277,14 +278,6 @@ func (dn *Daemon) reconcilable(oldConfig, newConfig *mcfgv1.MachineConfig) error
 	// resources, and the mcc should've fully rendered those out before the
 	// config gets here.
 
-	// Networkd section
-
-	// we don't currently configure the network in place. we can't fix it if
-	// something changed here.
-	if !reflect.DeepEqual(oldIgn.Networkd, newIgn.Networkd) {
-		return errors.New("ignition networkd section contains changes")
-	}
-
 	// Passwd section
 
 	// we don't currently configure Groups in place. we don't configure Users except
@@ -341,7 +334,7 @@ func (dn *Daemon) reconcilable(oldConfig, newConfig *mcfgv1.MachineConfig) error
 	// Special case files append: if the new config wants us to append, then we
 	// have to force a reprovision since it's not idempotent
 	for _, f := range newIgn.Storage.Files {
-		if f.Append {
+		if len(f.Append) != 0 {
 			return fmt.Errorf("ignition file %v includes append", f.Path)
 		}
 	}
@@ -524,14 +517,14 @@ func (dn *Daemon) writeUnits(units []igntypes.Unit) error {
 		for i := range u.Dropins {
 			glog.Infof("Writing systemd unit dropin %q", u.Dropins[i].Name)
 			dpath := filepath.Join(pathSystemd, u.Name+".d", u.Dropins[i].Name)
-			if err := writeFileAtomicallyWithDefaults(dpath, []byte(u.Dropins[i].Contents)); err != nil {
+			if err := writeFileAtomicallyWithDefaults(dpath, []byte(ctrlcommon.StrFromStrPtr(u.Dropins[i].Contents))); err != nil {
 				return fmt.Errorf("failed to write systemd unit dropin %q: %v", u.Dropins[i].Name, err)
 			}
 
 			glog.V(2).Infof("Wrote systemd unit dropin at %s", dpath)
 		}
 
-		if u.Contents == "" {
+		if ctrlcommon.StrFromStrPtr(u.Contents) == "" {
 			continue
 		}
 
@@ -541,7 +534,7 @@ func (dn *Daemon) writeUnits(units []igntypes.Unit) error {
 
 		// check if the unit is masked. if it is, we write a symlink to
 		// /dev/null and continue
-		if u.Mask {
+		if u.Mask != nil && *u.Mask {
 			glog.V(2).Info("Systemd unit masked")
 			if err := os.RemoveAll(fpath); err != nil {
 				return fmt.Errorf("failed to remove unit %q: %v", u.Name, err)
@@ -557,7 +550,7 @@ func (dn *Daemon) writeUnits(units []igntypes.Unit) error {
 		}
 
 		// write the unit to disk
-		if err := writeFileAtomicallyWithDefaults(fpath, []byte(u.Contents)); err != nil {
+		if err := writeFileAtomicallyWithDefaults(fpath, []byte(ctrlcommon.StrFromStrPtr(u.Contents))); err != nil {
 			return fmt.Errorf("failed to write systemd unit %q: %v", u.Name, err)
 		}
 
@@ -571,12 +564,6 @@ func (dn *Daemon) writeUnits(units []igntypes.Unit) error {
 		// be fine as disableUnit is idempotent.
 		// Note: we have to check for legacy unit.Enable and honor it
 		glog.Infof("Enabling systemd unit %q", u.Name)
-		if u.Enable {
-			if err := dn.enableUnit(u); err != nil {
-				return err
-			}
-			glog.V(2).Infof("Enabled systemd unit %q", u.Name)
-		}
 		if u.Enabled != nil {
 			if *u.Enabled {
 				if err := dn.enableUnit(u); err != nil {
@@ -599,8 +586,7 @@ func (dn *Daemon) writeUnits(units []igntypes.Unit) error {
 func (dn *Daemon) writeFiles(files []igntypes.File) error {
 	for _, file := range files {
 		glog.Infof("Writing file %q", file.Path)
-
-		contents, err := dataurl.DecodeString(file.Contents.Source)
+		contents, err := dataurl.DecodeString(ctrlcommon.StrFromStrPtr(file.Contents.Source))
 		if err != nil {
 			return err
 		}
@@ -612,7 +598,7 @@ func (dn *Daemon) writeFiles(files []igntypes.File) error {
 			uid, gid = -1, -1
 		)
 		// set chown if file information is provided
-		if file.User != nil || file.Group != nil {
+		if (file.User != igntypes.NodeUser{}) || (file.Group != igntypes.NodeGroup{}) {
 			uid, gid, err = getFileOwnership(file)
 			if err != nil {
 				return fmt.Errorf("failed to retrieve file ownership for file %q: %v", file.Path, err)
@@ -628,25 +614,25 @@ func (dn *Daemon) writeFiles(files []igntypes.File) error {
 // This is essentially ResolveNodeUidAndGid() from Ignition; XXX should dedupe
 func getFileOwnership(file igntypes.File) (int, int, error) {
 	uid, gid := 0, 0 // default to root
-	if file.User != nil {
+	if (file.User != igntypes.NodeUser{}) {
 		if file.User.ID != nil {
 			uid = *file.User.ID
-		} else if file.User.Name != "" {
-			osUser, err := user.Lookup(file.User.Name)
+		} else if ctrlcommon.StrFromStrPtr(file.User.Name) != "" {
+			osUser, err := user.Lookup(ctrlcommon.StrFromStrPtr(file.User.Name))
 			if err != nil {
-				return uid, gid, fmt.Errorf("failed to retrieve UserID for username: %s", file.User.Name)
+				return uid, gid, fmt.Errorf("failed to retrieve UserID for username: %s", *file.User.Name)
 			}
 			glog.V(2).Infof("Retrieved UserId: %s for username: %s", osUser.Uid, file.User.Name)
 			uid, _ = strconv.Atoi(osUser.Uid)
 		}
 	}
-	if file.Group != nil {
+	if (file.Group != igntypes.NodeGroup{}) {
 		if file.Group.ID != nil {
 			gid = *file.Group.ID
-		} else if file.Group.Name != "" {
-			osGroup, err := user.LookupGroup(file.Group.Name)
+		} else if ctrlcommon.StrFromStrPtr(file.Group.Name) != "" {
+			osGroup, err := user.LookupGroup(ctrlcommon.StrFromStrPtr(file.Group.Name))
 			if err != nil {
-				return uid, gid, fmt.Errorf("failed to retrieve GroupID for group: %s", file.Group.Name)
+				return uid, gid, fmt.Errorf("failed to retrieve GroupID for group: %s", *file.Group.Name)
 			}
 			glog.V(2).Infof("Retrieved GroupID: %s for group: %s", osGroup.Gid, file.Group.Name)
 			gid, _ = strconv.Atoi(osGroup.Gid)

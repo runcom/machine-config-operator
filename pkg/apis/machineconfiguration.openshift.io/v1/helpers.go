@@ -21,7 +21,7 @@ func MergeMachineConfigs(configs []*MachineConfig, osImageURL string) *MachineCo
 
 	outIgn := configs[0].Spec.Config
 	for idx := 1; idx < len(configs); idx++ {
-		outIgn = ign.Append(outIgn, configs[idx].Spec.Config)
+		outIgn = ign.Merge(outIgn, configs[idx].Spec.Config)
 	}
 
 	return &MachineConfig{

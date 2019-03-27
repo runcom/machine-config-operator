@@ -16,7 +16,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	mcfgv1 "github.com/openshift/machine-config-operator/pkg/apis/machineconfiguration.openshift.io/v1"
-	"github.com/openshift/machine-config-operator/pkg/controller/common"
+	ctrlcommon "github.com/openshift/machine-config-operator/pkg/controller/common"
 	"github.com/openshift/machine-config-operator/pkg/version"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -80,7 +80,7 @@ func generateTemplateMachineConfigs(config *RenderConfig, templateDir string) ([
 		if cfg.Annotations == nil {
 			cfg.Annotations = map[string]string{}
 		}
-		cfg.Annotations[common.GeneratedByControllerVersionAnnotationKey] = version.Version.String()
+		cfg.Annotations[ctrlcommon.GeneratedByControllerVersionAnnotationKey] = version.Version.String()
 	}
 
 	return cfgs, nil
@@ -257,7 +257,7 @@ func MachineConfigFromIgnConfig(role string, name string, ignCfg *igntypes.Confi
 }
 
 func transpileToIgn(files, units []string) (*igntypes.Config, error) {
-	ignCfg := common.NewIgnConfig()
+	ignCfg := ctrlcommon.NewIgnConfig()
 
 	// Convert data to Ignition resources
 	for _, d := range files {
@@ -271,13 +271,13 @@ func transpileToIgn(files, units []string) (*igntypes.Config, error) {
 	}
 
 	for _, d := range units {
-		u := new(igntypes.SystemdUnit)
+		u := new(igntypes.Unit)
 		if err := yaml.Unmarshal([]byte(d), u); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal systemd unit into struct: %v", err)
 		}
 
 		// Add the unit to the config
-		ignCfg.Systemd.Units = append(IgnCfg.Systemd.Units, *u)
+		ignCfg.Systemd.Units = append(ignCfg.Systemd.Units, *u)
 	}
 
 	return &ignCfg, nil

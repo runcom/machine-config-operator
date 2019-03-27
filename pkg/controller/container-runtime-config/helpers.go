@@ -68,15 +68,15 @@ func createNewCtrRuntimeConfigIgnition(storageTOMLConfig, crioTOMLConfig []byte)
 	if storageTOMLConfig != nil {
 		storagedu := dataurl.New(storageTOMLConfig, "text/plain")
 		storagedu.Encoding = dataurl.EncodingASCII
+		storageduString := storagedu.String()
 		storageTempFile := igntypes.File{
 			Node: igntypes.Node{
-				Filesystem: "root",
-				Path:       storageConfigPath,
+				Path: storageConfigPath,
 			},
 			FileEmbedded1: igntypes.FileEmbedded1{
 				Mode: &mode,
 				Contents: igntypes.FileContents{
-					Source: storagedu.String(),
+					Source: &storageduString,
 				},
 			},
 		}
@@ -87,15 +87,15 @@ func createNewCtrRuntimeConfigIgnition(storageTOMLConfig, crioTOMLConfig []byte)
 	if crioTOMLConfig != nil {
 		criodu := dataurl.New(crioTOMLConfig, "text/plain")
 		criodu.Encoding = dataurl.EncodingASCII
+		crioduString := criodu.String()
 		crioTempFile := igntypes.File{
 			Node: igntypes.Node{
-				Filesystem: "root",
-				Path:       crioConfigPath,
+				Path: crioConfigPath,
 			},
 			FileEmbedded1: igntypes.FileEmbedded1{
 				Mode: &mode,
 				Contents: igntypes.FileContents{
-					Source: criodu.String(),
+					Source: &crioduString,
 				},
 			},
 		}
@@ -112,15 +112,15 @@ func createNewRegistriesConfigIgnition(registriesTOMLConfig []byte) igntypes.Con
 	if registriesTOMLConfig != nil {
 		regdu := dataurl.New(registriesTOMLConfig, "text/plain")
 		regdu.Encoding = dataurl.EncodingASCII
+		regduString := regdu.String()
 		regTempFile := igntypes.File{
 			Node: igntypes.Node{
-				Filesystem: "root",
-				Path:       registriesConfigPath,
+				Path: registriesConfigPath,
 			},
 			FileEmbedded1: igntypes.FileEmbedded1{
 				Mode: &mode,
 				Contents: igntypes.FileContents{
-					Source: regdu.String(),
+					Source: &regduString,
 				},
 			},
 		}

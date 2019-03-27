@@ -531,7 +531,7 @@ func (ctrl *Controller) syncContainerRuntimeConfig(key string) error {
 // mergeConfigChanges retrieves the original/default config data from the templates, decodes it and merges in the changes given by the Custom Resource.
 // It then encodes the new data and returns it.
 func (ctrl *Controller) mergeConfigChanges(origFile *igntypes.File, cfg *mcfgv1.ContainerRuntimeConfig, mc *mcfgv1.MachineConfig, role, managedKey string, isNotFound bool, update updateConfig) ([]byte, error) {
-	dataURL, err := dataurl.DecodeString(origFile.Contents.Source)
+	dataURL, err := dataurl.DecodeString(ctrlcommon.StrFromStrPtr(origFile.Contents.Source))
 	if err != nil {
 		return nil, ctrl.syncStatusOnly(cfg, err, "could not decode original Container Runtime config: %v", err)
 	}
@@ -600,7 +600,7 @@ func (ctrl *Controller) syncImageConfig(key string) error {
 
 			var registriesTOML []byte
 			if insecureRegs != nil || blockedRegs != nil {
-				dataURL, err := dataurl.DecodeString(originalRegistriesIgn.Contents.Source)
+				dataURL, err := dataurl.DecodeString(ctrlcommon.StrFromStrPtr(originalRegistriesIgn.Contents.Source))
 				if err != nil {
 					return fmt.Errorf("could not decode original registries config: %v", err)
 				}

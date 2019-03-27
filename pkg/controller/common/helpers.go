@@ -12,3 +12,11 @@ func NewIgnConfig() igntypes.Config {
 		},
 	}
 }
+
+// StrFromStrPtr returns string value from string pointer or empty string if nil
+func StrFromStrPtr(strptr *string) string {
+	if strptr == nil {
+		return ""
+	}
+	return *strptr
+}

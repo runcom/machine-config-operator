@@ -18,11 +18,6 @@ const (
 
 	// From https://github.com/openshift/pivot/pull/25/commits/c77788a35d7ee4058d1410e89e6c7937bca89f6c#diff-04c6e90faac2675aa89e2176d2eec7d8R44
 	pivotRebootNeeded = "/run/pivot/reboot-needed"
-
-	// defaultFileSystem defines the default file system to be
-	// used for writing the ignition files created by the
-	// server.
-	defaultFileSystem = "root"
 )
 
 // kubeconfigFunc fetches the kubeconfig that needs to be served.
@@ -67,17 +62,19 @@ func appendInitialPivot(conf *igntypes.Config, osimageurl string) error {
 	if len(conf.Systemd.Units) == 0 {
 		conf.Systemd.Units = make([]igntypes.Unit, 0)
 	}
+	unitContents := `[Unit]
+	Before=pivot.service
+	ConditionFirstBoot=true
+	[Service]
+	ExecStart=/bin/sh -c 'mkdir /run/pivot && touch /run/pivot/reboot-needed'
+	[Install]
+	WantedBy=multi-user.target
+	`
 	unit := igntypes.Unit{
-		Name:    "mcd-write-pivot-reboot.service",
-		Enabled: boolToPtr(true),
-		Contents: `[Unit]
-Before=pivot.service
-ConditionFirstBoot=true
-[Service]
-ExecStart=/bin/sh -c 'mkdir /run/pivot && touch /run/pivot/reboot-needed'
-[Install]
-WantedBy=multi-user.target
-`}
+		Name:     "mcd-write-pivot-reboot.service",
+		Enabled:  boolToPtr(true),
+		Contents: &unitContents,
+	}
 	conf.Systemd.Units = append(conf.Systemd.Units, unit)
 	return nil
 }
@@ -124,14 +121,14 @@ func copyFileToIgnition(conf *igntypes.Config, outPath, srcPath string) error {
 
 func appendFileToIgnition(conf *igntypes.Config, outPath, contents string) {
 	fileMode := int(420)
+	encodedContents := getEncodedContent(contents)
 	file := igntypes.File{
 		Node: igntypes.Node{
-			Filesystem: defaultFileSystem,
-			Path:       outPath,
+			Path: outPath,
 		},
 		FileEmbedded1: igntypes.FileEmbedded1{
 			Contents: igntypes.FileContents{
-				Source: getEncodedContent(contents),
+				Source: &encodedContents,
 			},
 			Mode: &fileMode,
 		},
