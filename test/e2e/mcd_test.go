@@ -9,6 +9,7 @@ import (
 
 	igntypes "github.com/coreos/ignition/config/v3_0/types"
 	mcv1 "github.com/openshift/machine-config-operator/pkg/apis/machineconfiguration.openshift.io/v1"
+	ctrlcommon "github.com/openshift/machine-config-operator/pkg/controller/common"
 	"github.com/openshift/machine-config-operator/pkg/daemon/constants"
 	"github.com/openshift/machine-config-operator/test/e2e/framework"
 	"k8s.io/api/core/v1"
@@ -51,22 +52,21 @@ func mcLabelForWorkers() map[string]string {
 	return mcLabels
 }
 
-func createIgnFile(path, content, fs string, mode int) igntypes.File {
+func createIgnFile(path, content string, mode int) igntypes.File {
 	return igntypes.File{
 		FileEmbedded1: igntypes.FileEmbedded1{
 			Contents: igntypes.FileContents{
-				Source: content,
+				Source: &content,
 			},
 			Mode: &mode,
 		},
 		Node: igntypes.Node{
-			Filesystem: fs,
-			Path:       path,
+			Path: path,
 		},
 	}
 }
 
-func createMCToAddFile(name, filename, data, fs string) *mcv1.MachineConfig {
+func createMCToAddFile(name, filename, data string) *mcv1.MachineConfig {
 	// create a dummy MC
 	mcName := fmt.Sprintf("%s-%s", name, uuid.NewUUID())
 	mcadd := &mcv1.MachineConfig{}
@@ -75,18 +75,11 @@ func createMCToAddFile(name, filename, data, fs string) *mcv1.MachineConfig {
 		// TODO(runcom): hardcoded to workers for safety
 		Labels: mcLabelForWorkers(),
 	}
-	mcadd.Spec = mcv1.MachineConfigSpec{
-		Config: igntypes.Config{
-			Ignition: igntypes.Ignition{
-				Version: "2.2.0",
-			},
-			Storage: igntypes.Storage{
-				Files: []igntypes.File{
-					createIgnFile(filename, "data:,"+data, fs, 420),
-				},
-			},
-		},
-	}
+	ignConfig := ctrlcommon.NewIgnConfig()
+	ignFile := createIgnFile(filename, "data:,"+data, 420)
+	ignConfig.Storage.Files = append(ignConfig.Storage.Files, ignFile)
+	mcadd.Spec.Config = ignConfig
+
 	return mcadd
 }
 
@@ -94,7 +87,7 @@ func TestMCDeployed(t *testing.T) {
 	cs := framework.NewClientSet("")
 
 	for i := 0; i < 10; i++ {
-		mcadd := createMCToAddFile("add-a-file", fmt.Sprintf("/etc/mytestconf%d", i), "test", "root")
+		mcadd := createMCToAddFile("add-a-file", fmt.Sprintf("/etc/mytestconf%d", i), "test")
 
 		// create the dummy MC now
 		_, err := cs.MachineConfigs().Create(mcadd)
@@ -163,16 +156,10 @@ func TestUpdateSSH(t *testing.T) {
 			"abc_test",
 		},
 	}
-	mcadd.Spec = mcv1.MachineConfigSpec{
-		Config: igntypes.Config{
-			Ignition: igntypes.Ignition{
-				Version: "2.2.0",
-			},
-			Passwd: igntypes.Passwd{
-				Users: []igntypes.PasswdUser{tempUser},
-			},
-		},
-	}
+	ignConfig := ctrlcommon.NewIgnConfig()
+	ignConfig.Passwd.Users = append(ignConfig.Passwd.Users, tempUser)
+	mcadd.Spec.Config = ignConfig
+
 	_, err := cs.MachineConfigs().Create(mcadd)
 	if err != nil {
 		t.Errorf("failed to create machine config %v", err)
@@ -266,7 +253,7 @@ func TestReconcileAfterBadMC(t *testing.T) {
 	cs := framework.NewClientSet("")
 
 	// create a bad MC w/o a filesystem field which is going to fail reconciling
-	mcadd := createMCToAddFile("add-a-file", "/etc/mytestconfs", "test", "")
+	mcadd := createMCToAddFile("add-a-file", "/etc/mytestconfs", "test")
 
 	// grab the initial machineconfig used by the worker pool
 	// this MC is gonna be the one which is going to be reapplied once the bad MC is deleted

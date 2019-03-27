@@ -84,7 +84,7 @@ func TestReconcilable(t *testing.T) {
 		Spec: mcfgv1.MachineConfigSpec{
 			Config: igntypes.Config{
 				Ignition: igntypes.Ignition{
-					Version: "2.2.0",
+					Version: "3.0.0",
 				},
 			},
 		},
@@ -95,27 +95,9 @@ func TestReconcilable(t *testing.T) {
 	checkIrreconcilableResults(t, "Ignition", isReconcilable)
 
 	// Match ignition versions
-	oldConfig.Spec.Config.Ignition.Version = "2.2.0"
+	oldConfig.Spec.Config.Ignition.Version = "3.0.0"
 	isReconcilable = d.reconcilable(oldConfig, newConfig)
 	checkReconcilableResults(t, "Ignition", isReconcilable)
-
-	// Verify Networkd unit changes react as expected
-	oldConfig.Spec.Config.Networkd = igntypes.Networkd{}
-	newConfig.Spec.Config.Networkd = igntypes.Networkd{
-		Units: []igntypes.Networkdunit{
-			igntypes.Networkdunit{
-				Name: "test.network",
-			},
-		},
-	}
-	isReconcilable = d.reconcilable(oldConfig, newConfig)
-	checkIrreconcilableResults(t, "Networkd", isReconcilable)
-
-	// Match Networkd
-	oldConfig.Spec.Config.Networkd = newConfig.Spec.Config.Networkd
-
-	isReconcilable = d.reconcilable(oldConfig, newConfig)
-	checkReconcilableResults(t, "Networkd", isReconcilable)
 
 	// Verify Disk changes react as expected
 	oldConfig.Spec.Config.Storage.Disks = []igntypes.Disk{
@@ -133,11 +115,11 @@ func TestReconcilable(t *testing.T) {
 	checkReconcilableResults(t, "Disk", isReconcilable)
 
 	// Verify Filesystems changes react as expected
-	oldFSPath := "/foo/bar"
 	oldConfig.Spec.Config.Storage.Filesystems = []igntypes.Filesystem{
 		igntypes.Filesystem{
-			Name: "user",
-			Path: &oldFSPath,
+			Path:   returnStrPtr("/foo/bar"),
+			Format: returnStrPtr("ext4"),
+			Device: "/my_device",
 		},
 	}
 
@@ -213,7 +195,7 @@ func TestReconcilableSSH(t *testing.T) {
 		Spec: mcfgv1.MachineConfigSpec{
 			Config: igntypes.Config{
 				Ignition: igntypes.Ignition{
-					Version: "2.2.0",
+					Version: "3.0.0",
 				},
 			},
 		},
@@ -223,7 +205,7 @@ func TestReconcilableSSH(t *testing.T) {
 		Spec: mcfgv1.MachineConfigSpec{
 			Config: igntypes.Config{
 				Ignition: igntypes.Ignition{
-					Version: "2.2.0",
+					Version: "3.0.0",
 				},
 				Passwd: igntypes.Passwd{
 					Users: []igntypes.PasswdUser{tempUser1},
@@ -245,7 +227,7 @@ func TestReconcilableSSH(t *testing.T) {
 	checkIrreconcilableResults(t, "SSH", errMsg)
 
 	// check that we cannot make updates if any other Passwd.User field is changed.
-	tempUser4 := igntypes.PasswdUser{Name: "core", SSHAuthorizedKeys: []igntypes.SSHAuthorizedKey{"5678"}, HomeDir: "somedir"}
+	tempUser4 := igntypes.PasswdUser{Name: "core", SSHAuthorizedKeys: []igntypes.SSHAuthorizedKey{"5678"}, HomeDir: returnStrPtr("somedir")}
 	newMcfg.Spec.Config.Passwd.Users[0] = tempUser4
 
 	errMsg = d.reconcilable(oldMcfg, newMcfg)
@@ -354,23 +336,23 @@ func TestInvalidIgnConfig(t *testing.T) {
 		Spec: mcfgv1.MachineConfigSpec{
 			Config: igntypes.Config{
 				Ignition: igntypes.Ignition{
-					Version: "2.2.0",
+					Version: "3.0.0",
 				},
 			},
 		},
 	}
 	// create file to write that contains an impermissable relative path
-	tempFileContents := igntypes.FileContents{Source: "data:,hello%20world%0A"}
+	tempFileContents := igntypes.FileContents{Source: returnStrPtr("data:,hello%20world%0A")}
 	tempMode := 420
 	newMcfg := &mcfgv1.MachineConfig{
 		Spec: mcfgv1.MachineConfigSpec{
 			Config: igntypes.Config{
 				Ignition: igntypes.Ignition{
-					Version: "2.2.0",
+					Version: "3.0.0",
 				},
 				Storage: igntypes.Storage{
 					Files: []igntypes.File{
-						{Node: igntypes.Node{Path: "home/core/test", Filesystem: "root"},
+						{Node: igntypes.Node{Path: "home/core/test"},
 							FileEmbedded1: igntypes.FileEmbedded1{Contents: tempFileContents, Mode: &tempMode}},
 					},
 				},
@@ -398,4 +380,8 @@ func checkIrreconcilableResults(t *testing.T, key string, reconcilableError erro
 	if reconcilableError == nil {
 		t.Errorf("Different %s values should not be reconcilable.", key)
 	}
+}
+
+func returnStrPtr(somestring string) *string {
+	return &somestring
 }

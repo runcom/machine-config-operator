@@ -228,7 +228,7 @@ func createUnitMap(units []igntypes.Unit) map[string]igntypes.Unit {
 func createFileMap(files []igntypes.File) map[string]igntypes.File {
 	m := make(map[string]igntypes.File)
 	for i := range files {
-		file := path.Join(files[i].Filesystem, files[i].Path)
+		file := files[i].Path
 		m[file] = files[i]
 	}
 	return m

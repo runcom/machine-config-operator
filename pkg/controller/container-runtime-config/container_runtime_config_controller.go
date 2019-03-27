@@ -600,7 +600,11 @@ func (ctrl *Controller) syncImageConfig(key string) error {
 
 			var registriesTOML []byte
 			if insecureRegs != nil || blockedRegs != nil {
-				dataURL, err := dataurl.DecodeString(ctrlcommon.StrFromStrPtr(originalRegistriesIgn.Contents.Source))
+				sourceData := ctrlcommon.StrFromStrPtr(originalRegistriesIgn.Contents.Source)
+				if len(sourceData) == 0 {
+					sourceData = "data:,"
+				}
+				dataURL, err := dataurl.DecodeString(sourceData)
 				if err != nil {
 					return fmt.Errorf("could not decode original registries config: %v", err)
 				}
