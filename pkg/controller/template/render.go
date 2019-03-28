@@ -18,6 +18,7 @@ import (
 	mcfgv1 "github.com/openshift/machine-config-operator/pkg/apis/machineconfiguration.openshift.io/v1"
 	ctrlcommon "github.com/openshift/machine-config-operator/pkg/controller/common"
 	"github.com/openshift/machine-config-operator/pkg/version"
+	"github.com/vincent-petithory/dataurl"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -261,23 +262,32 @@ func transpileToIgn(files, units []string) (*igntypes.Config, error) {
 
 	// Convert data to Ignition resources
 	for _, d := range files {
-		f := new(igntypes.File)
-		if err := yaml.Unmarshal([]byte(d), f); err != nil {
+		var f igntypes.File
+		if err := yaml.Unmarshal([]byte(d), &f); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal file into struct: %v", err)
 		}
+		regdu := dataurl.New([]byte(*f.Contents.Source), "text/plain")
+		regdu.Encoding = dataurl.EncodingASCII
+		regduString := regdu.String()
+		f.Contents.Source = &regduString
 
 		// Add the file to the config
-		ignCfg.Storage.Files = append(ignCfg.Storage.Files, *f)
+		ignCfg.Storage.Files = append(ignCfg.Storage.Files, f)
 	}
 
 	for _, d := range units {
-		u := new(igntypes.Unit)
-		if err := yaml.Unmarshal([]byte(d), u); err != nil {
+		var u igntypes.Unit
+		if err := yaml.Unmarshal([]byte(d), &u); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal systemd unit into struct: %v", err)
 		}
 
+		regdu := dataurl.New([]byte(*u.Contents), "text/plain")
+		regdu.Encoding = dataurl.EncodingASCII
+		regduString := regdu.String()
+		u.Contents = &regduString
+
 		// Add the unit to the config
-		ignCfg.Systemd.Units = append(ignCfg.Systemd.Units, *u)
+		ignCfg.Systemd.Units = append(ignCfg.Systemd.Units, u)
 	}
 
 	return &ignCfg, nil
