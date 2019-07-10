@@ -18,6 +18,7 @@ spec:
       containers:
       - name: machine-config-operator
         image: registry.svc.ci.openshift.org/openshift:machine-config-operator
+        command: ["/usr/bin/machine-config-operator"]
         args:
         - "start"
         - "--images-json=/etc/mco/images/images.json"

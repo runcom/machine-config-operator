@@ -16,5 +16,4 @@ COPY --from=builder /go/src/github.com/openshift/machine-config-operator/_output
 COPY templates /etc/mcc/templates
 COPY --from=builder /go/src/github.com/openshift/machine-config-operator/_output/linux/amd64/machine-config-server /usr/bin/
 COPY --from=builder /go/src/github.com/openshift/machine-config-operator/_output/linux/amd64/setup-etcd-environment /usr/bin/
-ENTRYPOINT ["/usr/bin/machine-config-operator"]
 LABEL io.openshift.release.operator true
