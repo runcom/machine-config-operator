@@ -155,9 +155,13 @@ func (optr *Operator) syncRenderConfig(_ *renderConfig) error {
 		return err
 	}
 
-	additionalTrustBundle, err := optr.getCAsFromConfigMap("openshift-config-managed", "user-ca-bundle", "ca-bundle.crt")
-	if err != nil && !apierrors.IsNotFound(err) {
-		return err
+	var additionalTrustBundle []byte
+	if proxy != nil && proxy.Spec.TrustedCA.Name != "" {
+		var err error
+		additionalTrustBundle, err = optr.getCAsFromConfigMap("openshift-config-managed", proxy.Spec.TrustedCA.Name, "ca-bundle.crt")
+		if err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
 	}
 	spec.AdditionalTrustBundle = additionalTrustBundle
 
