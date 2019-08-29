@@ -368,7 +368,7 @@ func (dn *Daemon) syncNode(key string) error {
 	// and then proceeds to check the state of the node, which includes
 	// finalizing an update and/or reconciling the current and desired machine configs.
 	if dn.booting {
-		if err := dn.checkStateOnFirstRun(); err != nil {
+		if err := dn.checkStateOnFirstRun(false); err != nil {
 			return err
 		}
 		// finished syncing node for the first time;
@@ -388,7 +388,7 @@ func (dn *Daemon) syncNode(key string) error {
 			return err
 		}
 	}
-	glog.V(2).Infof("Node %s is already synced", node.Name)
+	glog.V(2).Infof("Node %s is synced", node.Name)
 	return nil
 }
 
@@ -791,7 +791,7 @@ func (dn *Daemon) storeCurrentConfigOnDisk(current *mcfgv1.MachineConfig) error 
 //
 // Some more background in this PR: https://github.com/openshift/machine-config-operator/pull/245
 //nolint:gocyclo
-func (dn *Daemon) checkStateOnFirstRun() error {
+func (dn *Daemon) checkStateOnFirstRun(notRebooted bool) error {
 	node, err := dn.loadNodeAnnotations(dn.node)
 	if err != nil {
 		return err
@@ -846,7 +846,7 @@ func (dn *Daemon) checkStateOnFirstRun() error {
 		if !osMatch {
 			glog.Infof("Bootstrap pivot required to: %s", targetOSImageURL)
 			// This only returns on error
-			return dn.updateOSAndReboot(state.currentConfig)
+			return dn.updateOSAndReboot(state.currentConfig, false)
 		}
 		glog.Info("No bootstrap pivot required; unlinking bootstrap node annotations")
 

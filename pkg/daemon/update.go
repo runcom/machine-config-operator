@@ -95,7 +95,13 @@ func (dl *drainLogger) Log(v ...interface{}) {
 
 // updateOSAndReboot is the last step in an update(), and it can also
 // be called as a special case for the "bootstrap pivot".
-func (dn *Daemon) updateOSAndReboot(newConfig *mcfgv1.MachineConfig) (retErr error) {
+func (dn *Daemon) updateOSAndReboot(newConfig *mcfgv1.MachineConfig, avoidDrainAndReboot bool) (retErr error) {
+	if avoidDrainAndReboot {
+		if out, err := dn.storePendingState(newConfig, 1); err != nil {
+			return errors.Wrapf(err, "failed to log pending config: %s", string(out))
+		}
+		return dn.checkStateOnFirstRun(avoidDrainAndReboot)
+	}
 	if err := dn.updateOS(newConfig); err != nil {
 		return err
 	}
@@ -160,6 +166,18 @@ func (dn *Daemon) drainAndReboot(newConfig *mcfgv1.MachineConfig) (retErr error)
 	return dn.reboot(fmt.Sprintf("Node will reboot into config %v", newConfig.GetName()))
 }
 
+func canAvoidDrainAndReboot(diff *MachineConfigDiff) bool {
+	if diff.osUpdate || diff.kargs || diff.fips {
+		return false
+	}
+	// support files/units at some point...or kube config and crio configs which
+	// generally just requires a reload
+	if diff.passwd && !diff.files && !diff.units {
+		return true
+	}
+	return false
+}
+
 var errUnreconcilable = errors.New("unreconcilable")
 
 // update the node to the provided node configuration.
@@ -183,6 +201,7 @@ func (dn *Daemon) update(oldConfig, newConfig *mcfgv1.MachineConfig) (retErr err
 		}
 	}()
 
+	var avoidDrainAndReboot bool
 	oldConfigUnset := oldConfig == nil
 	if oldConfigUnset {
 		// Rather than change the rest of the code to deal
@@ -197,6 +216,7 @@ func (dn *Daemon) update(oldConfig, newConfig *mcfgv1.MachineConfig) (retErr err
 
 		// make sure we can actually reconcile this state
 		diff, reconcilableError := Reconcilable(oldConfig, newConfig)
+		avoidDrainAndReboot = canAvoidDrainAndReboot(diff)
 
 		if reconcilableError != nil {
 			wrappedErr := fmt.Errorf("can't reconcile config %s with %s: %v", oldConfigName, newConfigName, reconcilableError)
@@ -277,7 +297,7 @@ func (dn *Daemon) update(oldConfig, newConfig *mcfgv1.MachineConfig) (retErr err
 		}
 	}()
 
-	return dn.updateOSAndReboot(newConfig)
+	return dn.updateOSAndReboot(newConfig, avoidDrainAndReboot)
 }
 
 func (dn *Daemon) updateFIPS(current, desired *mcfgv1.MachineConfig) error {
