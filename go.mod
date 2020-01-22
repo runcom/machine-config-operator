@@ -13,7 +13,6 @@ require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/apparentlymart/go-cidr v1.0.0
 	github.com/ashcrow/osrelease v0.0.0-20180626175927-9b292693c55c
-	github.com/containerd/continuity v0.0.0-20190827140505-75bee3e2ccb6 // indirect
 	github.com/containers/image v3.0.2+incompatible
 	github.com/containers/storage v1.13.4
 	github.com/coreos/container-linux-config-transpiler v0.9.0
@@ -22,7 +21,6 @@ require (
 	github.com/cri-o/cri-o v1.9.0-beta.2.0.20191003162030-4775e1c05c26
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/docker-credential-helpers v0.6.3 // indirect
-	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/elazarl/goproxy v0.0.0-20190911111923-ecfe977594f1 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20190911111923-ecfe977594f1 // indirect
 	github.com/emicklei/go-restful v2.10.0+incompatible // indirect
@@ -42,11 +40,11 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/onsi/ginkgo v1.10.2 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1
-	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
-	github.com/openshift/client-go v0.0.0-20191001081553-3b0e988f8cb0
+	github.com/openshift/api v3.9.1-0.20191002160657-d92789481b05+incompatible
+	github.com/openshift/client-go v0.0.0-20200116152001-92a2713fa240
 	github.com/openshift/cluster-api v0.0.0-20190923092624-4024de4fa64d
 	github.com/openshift/cluster-etcd-operator v0.0.0-alpha.0.0.20191025163650-5854b5c48ce4
-	github.com/openshift/library-go v0.0.0-20191003152030-97c62d8a2901
+	github.com/openshift/library-go v0.0.0-20200120153246-906409ae5e38
 	github.com/openshift/runtime-utils v0.0.0-20191011150825-9169de69ebf6
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.1.0

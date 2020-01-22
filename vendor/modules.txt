@@ -667,11 +667,11 @@ github.com/opencontainers/runtime-tools/error
 # github.com/opencontainers/selinux v1.3.1-0.20190929122143-5215b1806f52
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
-# github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible => github.com/openshift/api v0.0.0-20200116145750-0e2ff1e215dd
+# github.com/openshift/api v3.9.1-0.20191002160657-d92789481b05+incompatible => github.com/openshift/api v0.0.0-20200116145750-0e2ff1e215dd
 github.com/openshift/api/config/v1
 github.com/openshift/api/operator/v1alpha1
 github.com/openshift/api/operator/v1
-# github.com/openshift/client-go v0.0.0-20191001081553-3b0e988f8cb0
+# github.com/openshift/client-go v0.0.0-20200116152001-92a2713fa240
 github.com/openshift/client-go/config/clientset/versioned
 github.com/openshift/client-go/operator/clientset/versioned
 github.com/openshift/client-go/config/informers/externalversions
@@ -706,7 +706,7 @@ github.com/openshift/imagebuilder/dockerfile/parser
 github.com/openshift/imagebuilder/dockerfile/command
 github.com/openshift/imagebuilder/signal
 github.com/openshift/imagebuilder/strslice
-# github.com/openshift/library-go v0.0.0-20191003152030-97c62d8a2901
+# github.com/openshift/library-go v0.0.0-20200120153246-906409ae5e38
 github.com/openshift/library-go/pkg/operator/v1helpers
 github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers
 # github.com/openshift/runtime-utils v0.0.0-20191011150825-9169de69ebf6
@@ -797,7 +797,7 @@ github.com/vincent-petithory/dataurl
 # github.com/vishvananda/netlink v1.0.0
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
-# github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f
+# github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df
 github.com/vishvananda/netns
 # github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb
 github.com/xeipuuv/gojsonpointer
